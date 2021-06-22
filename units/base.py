@@ -1,15 +1,23 @@
 
 class Unit(object):
-    __health: int
-    __recharge: int
+    _health: float
+    _recharge: int
 
     @property
     def health(self):
-        return self.__health
+        return self._health
 
     @health.setter
     def health(self, value):
-        self.__health = value
+        self._health = value
+
+    @property
+    def recharge(self):
+        return self._recharge
+
+    @recharge.setter
+    def recharge(self, value):
+        self._recharge = value
 
     def get_attack_success(self):
         raise NotImplementedError
@@ -23,15 +31,19 @@ class Unit(object):
     def is_active(self):
         raise NotImplementedError
 
-    def damage(self):
+    def taking_damage(self, amount):
+        raise NotImplementedError
+
+    def attack(self):
         raise NotImplementedError
 
 
 class CompositeUnit(Unit):
-    units: list
+    units: list = []
 
     def add_unit(self, unit: Unit):
         raise NotImplementedError
 
     def remove_unit(self, unit: Unit):
-        raise NotImplementedError
+        if unit in self.units:
+            self.units.remove(unit)

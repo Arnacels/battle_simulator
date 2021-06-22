@@ -1,4 +1,4 @@
-from common_units import (
+from .common_units import (
     Soldier,
     Vehicle,
     Squad,
