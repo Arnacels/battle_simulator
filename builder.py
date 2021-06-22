@@ -1,6 +1,6 @@
 from typing import List
 
-from buttle_fields import BattleField
+from battle_fields import BattleField
 import units
 
 
