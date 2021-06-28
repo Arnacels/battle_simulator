@@ -1,15 +1,11 @@
-from pydantic import BaseModel, Field, ValidationError
+import random
+import time
 
-from battle_fields.strategies import Strategies
-from builder import BattleBuilder
+from pydantic import ValidationError
+
 from battle_fields import BattleField
-
-
-class Config(BaseModel):
-    armies_count: int = Field(ge=2)
-    strategy_name: Strategies = Field(title='/'.join([s.name for s in Strategies]))
-    squad_count: int = Field(ge=2)
-    unit_count: int = Field(ge=5, le=10)
+from builder import BattleBuilder
+from utils import Config, filter_alive_units, filter_active_units, print_armies_status
 
 
 def main():
@@ -22,12 +18,20 @@ def main():
         try:
             config = Config(**fields_data)
         except ValidationError as exc:
-            print('\n'.join([er.get('msg') for er in exc.errors()]))
+            print('\n'.join([', '.join(er.get('loc')) + ': ' + er.get('msg') for er in exc.errors()]))
 
     battle_field: BattleField = BattleBuilder(**config.dict()).get_result()
-    active_armies = [army.is_active() for army in battle_field.armies]
-    while len(active_armies) > 1:
-        battle_field.battle()
+    alive_armies = list(filter_alive_units(battle_field.armies))
+    while len(alive_armies) > 1:
+        active_armies = list(filter_active_units(alive_armies))
+        if len(active_armies) > 1:
+            army = random.choice(active_armies)
+            battle_field.battle(army)
+            alive_armies = list(filter_alive_units(battle_field.armies))
+            time.sleep(1/5)
+
+    print(print_armies_status(battle_field.armies))
+    print(f'Winner is {next(filter_alive_units(battle_field.armies)).id}')
 
 
 if __name__ == '__main__':

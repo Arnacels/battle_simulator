@@ -33,8 +33,9 @@ class BattleBuilderBase(object):
 
 class BattleBuilder(BattleBuilderBase):
 
-    def _create_army(self) -> units.Army:
+    def _create_army(self, id) -> units.Army:
         army = units.Army()
+        army.id = id
         for _ in range(self._squad_count):
             army.add_unit(self._create_squad())
         return army
@@ -55,7 +56,7 @@ class BattleBuilder(BattleBuilderBase):
 
     def _create_soldier(self) -> units.Soldier:
         soldier = units.Soldier()
-        soldier.health = 100.0
+        soldier.health = 2.0
         soldier.recharge = random.randint(100, 2000)
         return soldier
 
@@ -66,6 +67,6 @@ class BattleBuilder(BattleBuilderBase):
 
     def get_result(self) -> BattleField:
         armies = []
-        for _ in range(self._armies_count):
-            armies.append(self._create_army())
+        for id in range(self._armies_count):
+            armies.append(self._create_army(id))
         return self._create_battle_field(self._strategy_name, armies)

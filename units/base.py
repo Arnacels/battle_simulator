@@ -1,3 +1,5 @@
+import statistics
+
 
 class Unit(object):
     _health: float
@@ -5,7 +7,7 @@ class Unit(object):
 
     @property
     def health(self):
-        return self._health
+        return self._health if self._health > 0 else 0
 
     @health.setter
     def health(self, value):
@@ -31,6 +33,9 @@ class Unit(object):
     def is_active(self):
         raise NotImplementedError
 
+    def is_alive(self):
+        raise NotImplementedError
+
     def taking_damage(self, amount):
         raise NotImplementedError
 
@@ -39,7 +44,18 @@ class Unit(object):
 
 
 class CompositeUnit(Unit):
-    units: list = []
+
+    def __init__(self):
+        self.units: list = []
+
+    def __str__(self):
+        info = f"Live units: {len(self.get_alive_units())} \nActive units: {len(self.get_active_units())} \n"
+        info += "    ".join([str(unit) for unit in self.units]) + '\n'
+        return info
+
+    @property
+    def health(self):
+        return statistics.mean([unit.health for unit in self.units if unit.is_alive()])
 
     def add_unit(self, unit: Unit):
         raise NotImplementedError
@@ -47,3 +63,12 @@ class CompositeUnit(Unit):
     def remove_unit(self, unit: Unit):
         if unit in self.units:
             self.units.remove(unit)
+
+    def is_alive(self):
+        return any([unit.is_alive() for unit in self.units])
+
+    def get_alive_units(self):
+        return [unit for unit in self.units if unit.is_alive()]
+
+    def get_active_units(self):
+        return [unit for unit in self.units if unit.is_active()]
