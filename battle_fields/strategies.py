@@ -1,12 +1,16 @@
 import random
-from typing import List
 
 from units import Army
-from utils import Strategies, get_strongest, get_weakest
+from utils import Strategies
 
 
 class Strategy(object):
-    def battle(self, attack_army: Army, armies: List[Army]):
+    """
+    Base strategy class
+    in Strategy class implemented methods for execute battle with
+    different params and tactics
+    """
+    def battle(self, attack_army: Army, battle_field):
         raise NotImplementedError
 
     @staticmethod
@@ -18,9 +22,15 @@ class Strategy(object):
 
 
 class RandomStrategy(Strategy):
+    """
+    Random strategy is strategy where attack army choose random squad for battle
+    """
     name: str = Strategies.random.value
 
-    def battle(self, attack_army: Army, armies: List[Army]):
+    def battle(self, attack_army: Army, battle_field):
+        armies = battle_field.get_active_units()
+        if attack_army in armies:
+            armies.remove(attack_army)
         random_army = random.choice(armies)
         if random_army:
             squads = [random.choice(attack_army.units), random.choice(random_army.units)]
@@ -28,11 +38,14 @@ class RandomStrategy(Strategy):
 
 
 class WeakestStrategy(Strategy):
+    """
+    Weakest strategy is strategy where attack army choose Weakest squad for battle
+    """
     name: str = Strategies.weakest.value
 
-    def battle(self, attack_army: Army, armies: List[Army]):
-        weakest_army = get_weakest(armies)
-        weakest_army_squad = get_weakest(weakest_army.units)
+    def battle(self, attack_army: Army, battle_field):
+        weakest_army = battle_field.get_weakest(skip_unit=attack_army)
+        weakest_army_squad = weakest_army.get_weakest()
         attack_army_squad = random.choice(attack_army.units)
         squads = [weakest_army_squad, attack_army_squad]
 
@@ -40,11 +53,14 @@ class WeakestStrategy(Strategy):
 
 
 class StrongestStrategy(Strategy):
+    """
+    Strongest strategy is strategy where attack army choose Strongest squad for battle
+    """
     name: str = Strategies.strongest.value
 
-    def battle(self, attack_army: Army, armies: List[Army]):
-        strongest_army = get_strongest(armies)
-        strongest_army_squad = get_strongest(strongest_army.units)
+    def battle(self, attack_army: Army, battle_field):
+        strongest_army = battle_field.get_strongest(skip_unit=attack_army)
+        strongest_army_squad = strongest_army.get_strongest()
         attack_army_squad = random.choice(attack_army.units)
         squads = [strongest_army_squad, attack_army_squad]
 

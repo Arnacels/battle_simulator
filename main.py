@@ -1,14 +1,26 @@
 import random
-import time
 
 from pydantic import ValidationError
 
 from battle_fields import BattleField
 from builder import BattleBuilder
-from utils import Config, filter_alive_units, filter_active_units, print_armies_status
+from utils import Config, print_armies_status
 
 
 def main():
+    config = config_read()
+    battle_field: BattleField = BattleBuilder(**config.dict()).get_battle_field()  # Build battlefield
+
+    field_after_battle = run_battle(battle_field)
+
+    get_battle_result(field_after_battle)
+
+
+def config_read():
+    """
+    Read config from stdin
+    Use validator pydantic and pydantic schemas data
+    """
     config = None
     while not config:
         fields_data = dict()
@@ -18,22 +30,33 @@ def main():
         try:
             config = Config(**fields_data)
         except ValidationError as exc:
-            print('\n'.join([', '.join(er.get('loc')) + ': ' + er.get('msg') for er in exc.errors()]))
+            msgs = []
+            for er in exc.errors():
+                fields_error = ', '.join(er.get('loc'))
+                msg_error = er.get('msg')
+                msgs.append(f"{fields_error}: {msg_error}")
+            print('\n'.join(msgs))
+    return config
 
-    battle_field: BattleField = BattleBuilder(**config.dict()).get_result()
-    alive_armies = list(filter_alive_units(battle_field.armies))
-    while len(alive_armies) > 1:
-        active_armies = list(filter_active_units(alive_armies))
+
+def run_battle(battle_field: BattleField):
+    """
+    Battle continues as long as there is more than one army on the battlefield,
+    in each iteration an army is randomly selected and this army,
+    according to the strategy chosen by the client, attacks another army.
+    """
+    while len(battle_field.get_alive_units()) > 1:
+        active_armies = battle_field.get_active_units()
         if len(active_armies) > 1:
             army = random.choice(active_armies)
             battle_field.battle(army)
-            alive_armies = list(filter_alive_units(battle_field.armies))
-            time.sleep(1/5)
+    return battle_field
 
-    print(print_armies_status(battle_field.armies))
-    print(f'Winner is {next(filter_alive_units(battle_field.armies)).id}')
+
+def get_battle_result(battle_field: BattleField):
+    print(print_armies_status(battle_field.units))
+    print(f'Winner is {next(iter(battle_field.get_alive_units())).id}')
 
 
 if __name__ == '__main__':
     main()
-

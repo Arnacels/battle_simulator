@@ -1,17 +1,31 @@
 from datetime import datetime, timedelta
 import random
-from typing import List, Union
+from typing import List, Union, Type
 import statistics
 
 from .base import Unit, CompositeUnit
 
 
 class Soldier(Unit):
+    """
+    Common Soldier
+    """
     __exp: int = 0
     __last_attack: datetime = None
 
     def __str__(self):
         return f"Health: {self.health}     Exp: {self.get_exp()} \n \n"
+
+    @classmethod
+    def create(cls, **kwargs):
+        """
+        :param kwargs: health float; recharge int
+        :return: Soldier object
+        """
+        unit = cls()
+        unit.health = kwargs.get('health', 0)
+        unit.recharge = kwargs.get('recharge', 1200)
+        return unit
 
     def set_exp(self):
         if self.__exp < 50:
@@ -44,7 +58,12 @@ class Soldier(Unit):
 
 
 class Vehicle(CompositeUnit):
+    """
+    Common Vehicle
+    Composite Soldier in units 1-3
+    """
     units: List[Soldier]
+    _composites_class: List[Type[Soldier]] = [Soldier]
     __last_attack: datetime = None
 
     def __str__(self):
@@ -56,12 +75,26 @@ class Vehicle(CompositeUnit):
 
     @recharge.setter
     def recharge(self, value):
-        if value >= 1000:
+        if value >= 0:
             self._recharge = value
 
     def add_unit(self, unit: Soldier):
         if len(self.units) < 4:
             self.units.append(unit)
+
+    @classmethod
+    def create(cls, **kwargs):
+        """
+        :param kwargs: health float; recharge int for soldier in Vehicle
+        :return: Vehicle object
+        """
+        kwargs.update(dict(
+            health=1.0,
+            recharge=random.randint(0, 1)
+        ))
+        unit = super().create(count=random.randint(1, 3), **kwargs)
+        unit.recharge = random.randint(0, 1)
+        return unit
 
     def get_exp(self):
         exps = []
@@ -90,18 +123,32 @@ class Vehicle(CompositeUnit):
 
     def attack(self):
         self.__last_attack = datetime.now()
-        _ = [soldier.attack() for soldier in self.units]
+        [soldier.attack() for soldier in self.units]
         return self.get_damage_amount()
 
 
 class Squad(CompositeUnit):
+    """
+    Common Squad
+    Composite Soldier or Vehicle in units
+    amount of units 5-10
+    """
     units: List[Union[Soldier, Vehicle]]
+    _composites_class: List[Union[Type[Soldier], Type[Vehicle]]] = [Soldier, Vehicle]
 
     def __str__(self):
         return f"Squad: " + super().__str__()
 
     def add_unit(self, unit: Union[Soldier, Vehicle]):
         self.units.append(unit)
+
+    @classmethod
+    def create(cls, *, count=1, **kwargs):
+        """
+        :param kwargs: health float; recharge int for soldier in Vehicle; unit_count for count units in squad
+        :return: Squad object
+        """
+        return super().create(count=kwargs.get('unit_count', 0), **kwargs)
 
     def get_damage_amount(self):
         return sum([unit.get_damage_amount() for unit in self.get_alive_units() if unit.is_active()])
@@ -124,12 +171,17 @@ class Squad(CompositeUnit):
 
     def attack(self):
         damage = self.get_damage_amount()
-        _ = [unit.attack() for unit in self.get_alive_units()]
+        [unit.attack() for unit in self.get_alive_units()]
         return damage
 
 
 class Army(CompositeUnit):
+    """
+    Common Army
+    Composite Squad in units
+    """
     units: List[Squad]
+    _composites_class: List[Squad] = [Squad]
     id: int = 0
 
     def __str__(self):
@@ -137,6 +189,14 @@ class Army(CompositeUnit):
 
     def add_unit(self, unit: Union[Squad]):
         self.units.append(unit)
+
+    @classmethod
+    def create(cls, *, count=1, **kwargs):
+        """
+        :param kwargs: health float; recharge int for soldier in Vehicle; squad_count for count squad in army
+        :return: Squad object
+        """
+        return super().create(count=kwargs.get('squad_count', 0), **kwargs)
 
     def get_damage_amount(self):
         return sum([unit.get_damage_amount() for unit in self.get_alive_units() if unit.is_active()])
@@ -146,3 +206,9 @@ class Army(CompositeUnit):
 
     def is_active(self):
         return any([unit.is_active() for unit in self.units])
+
+    def attack(self) -> float:
+        return self.get_damage_amount()
+
+    def taking_damage(self, amount):
+        pass

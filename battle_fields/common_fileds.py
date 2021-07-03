@@ -1,22 +1,27 @@
 from typing import List
 
 from units import Army
-from utils import filter_active_units, filter_alive_units
+from utils import CompositeMixin
 from .strategies import RandomStrategy, StrongestStrategy, WeakestStrategy, Strategy
 
 
 class BaseBattleField(object):
-    def battle(self):
+    def battle(self, attack_army):
         raise NotImplementedError
 
 
-class BattleField(BaseBattleField):
+class BattleField(BaseBattleField, CompositeMixin):
+    """
+    Battlefield
+    Is class have context strategy for battle and composite Armies in units
+    """
     __strategies_variable: dict
     __strategy: Strategy = None
+    _composites_class: List[Army] = [Army]
 
-    def __init__(self, armies: List[Army]):
+    def __init__(self):
+        super().__init__()
         self.__strategies_variable = dict()
-        self.armies = armies
         for strategy in [RandomStrategy, StrongestStrategy, WeakestStrategy]:
             self.__strategies_variable[strategy.name] = strategy()
 
@@ -28,8 +33,13 @@ class BattleField(BaseBattleField):
     def strategy(self, name):
         self.__strategy = self.__strategies_variable[name]
 
+    def add_unit(self, unit: Army):
+        self.units.append(unit)
+
+    @classmethod
+    def create(cls, *, count=1, **kwargs):
+        return super().create(count=kwargs.get('armies_count', 0), **kwargs)
+
     def battle(self, attack_army):
         if self.__strategy:
-            armies = list(filter_active_units(filter_alive_units(self.armies)))
-            armies.remove(attack_army)
-            self.__strategy.battle(attack_army, armies)
+            self.__strategy.battle(attack_army, self)
